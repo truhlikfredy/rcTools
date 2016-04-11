@@ -1,61 +1,105 @@
+#define serialSpeed        115200
+
 #define sensorPinA         A0
-#define serialSpeed        9600
-#define debounceIterations 100
+#define sensorPinB         A1
 
 unsigned int  directionsA[] = {999 , 206, 646, 308, 230, 65535, 364, 187, 481, 266 };
-unsigned char diffA         = 11;
 
-unsigned int  val           = 0;
-unsigned char i             = 0;
+class DPad {
+  
+private:
+
+  unsigned char port;
+  unsigned int  *directionsPtr;
+  unsigned char diff;
+  unsigned char globalState;
+  unsigned char globalStateOld;
+  unsigned int  debounce;
+
+  unsigned char previousState;
+  unsigned int  iterations;
+  
+
+  unsigned char findMatch(unsigned int input) {
+    //find if the input is in interval X and X+diff for each entry in the lookup table
+    for (unsigned char i=0; i<10; i++) {
+      if (*(directionsPtr+i)<=input && (*(directionsPtr+i)+diff)>=input) {
+        return(i);
+      }    
+    }
+    return(0);
+  }
+
+
+public:
+
+
+  DPad(unsigned char port, unsigned int *directionsPtr, unsigned char diff=11, unsigned int debounce=150) {
+    this->port           = port;
+    this->diff           = diff;
+    this->directionsPtr  = directionsPtr;
+    this->debounce       = debounce;
+    
+    this->globalState    = 255;
+    this->globalStateOld = 255;
+    this->previousState  = 255;
+    this->iterations     = 0;
+  }
+
+
+  void aquireState() {
+    globalStateOld = globalState;
+  
+    unsigned char state = findMatch(analogRead(port));
+    if (state != previousState) {
+      iterations = 0;
+    } else if ( state==previousState && iterations<65535 ) {
+      iterations ++;
+    }
+    previousState = state;
+  
+    if (iterations > debounce) {
+      globalState = state;
+    }
+  }
+
+
+  boolean isStateChanged() {
+    return globalState != globalStateOld;
+  }
+
+
+  unsigned char getState() {
+    return globalState;
+  }
+
+};
+
+
+//DPad left (sensorPinA, &directionsA[0], diffA, debounceIterations);
+//DPad right(sensorPinB, &directionsA[0], diffA, debounceIterations);
+DPad left (sensorPinA, &directionsA[0]);
+DPad right(sensorPinB, &directionsA[0]);
 
 
 void setup() {
   Serial.begin(serialSpeed     );
   digitalWrite(sensorPinA, HIGH); 
-}
-
-
-unsigned char findMatchA(unsigned int input) {
-  //find if the input is in interval X and X+diff for each entry in the lookup table
-  for (i=0; i<10; i++) {
-    if (directionsA[i]<=input && (directionsA[i]+diffA)>=input) {
-      return(i);
-    }    
-  }
-  return(0);
-}
-
-
-unsigned char getStateA(unsigned int input) {
-  static unsigned char previousReturnState = 255;
-  static unsigned char previousState       = 255;
-  static unsigned int  iterations          = 0;
-
-  unsigned char state = findMatchA(input);
-  if (state != previousState) {
-    iterations = 0;
-  } else if ( state==previousState && iterations<65535 ) {
-    iterations ++;
-  }
-  previousState = state;
-
-  if (iterations > debounceIterations) {
-    previousReturnState = state;
-  }
-  return previousReturnState;
+  digitalWrite(sensorPinB, HIGH); 
 }
 
 
 void loop() { 
-  static unsigned char stateA    = 0;
-  static unsigned char stateAold = 0;
-
-  stateA=getStateA(analogRead(sensorPinA));
+  left .aquireState();
+  right.aquireState();
   
-  if (stateA!=stateAold) {
-    Serial.println(stateA);
+  if (left.isStateChanged() || right.isStateChanged()) {
+    Serial.print(left.getState());
+    Serial.print(" ");
+    Serial.print(right.getState());
+    Serial.println();
+    Serial.flush();
   }
-  stateAold=stateA;
 }
 
 
