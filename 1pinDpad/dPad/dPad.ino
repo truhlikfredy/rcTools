@@ -1,5 +1,6 @@
-#define sensorPin   A0
-#define serialSpeed 9600
+#define sensorPinA         A0
+#define serialSpeed        9600
+#define debounceIterations 100
 
 unsigned int  directionsA[] = {999 , 206, 646, 308, 230, 65535, 364, 187, 481, 266 };
 unsigned char diffA         = 11;
@@ -9,8 +10,8 @@ unsigned char i             = 0;
 
 
 void setup() {
-  Serial.begin(serialSpeed);
-  digitalWrite(A0, HIGH); 
+  Serial.begin(serialSpeed     );
+  digitalWrite(sensorPinA, HIGH); 
 }
 
 
@@ -25,9 +26,36 @@ unsigned char findMatchA(unsigned int input) {
 }
 
 
+unsigned char getStateA(unsigned int input) {
+  static unsigned char previousReturnState = 255;
+  static unsigned char previousState       = 255;
+  static unsigned int  iterations          = 0;
+
+  unsigned char state = findMatchA(input);
+  if (state != previousState) {
+    iterations = 0;
+  } else if ( state==previousState && iterations<65535 ) {
+    iterations ++;
+  }
+  previousState = state;
+
+  if (iterations > debounceIterations) {
+    previousReturnState = state;
+  }
+  return previousReturnState;
+}
+
+
 void loop() { 
-  Serial.println( findMatchA( analogRead(sensorPin) ) );
-  delay(20);
+  static unsigned char stateA    = 0;
+  static unsigned char stateAold = 0;
+
+  stateA=getStateA(analogRead(sensorPinA));
+  
+  if (stateA!=stateAold) {
+    Serial.println(stateA);
+  }
+  stateAold=stateA;
 }
 
 
