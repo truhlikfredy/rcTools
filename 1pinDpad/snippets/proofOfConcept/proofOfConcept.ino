@@ -25,7 +25,9 @@ void loop() {
       min = diff;
     }
   }
-  Serial.println(match);
+  Serial.print(match);
+  Serial.print(" ");
+  Serial.println(sensorValue);
   
   delay(20);
 }
