@@ -4,7 +4,7 @@ unsigned int i = 0;
 
 void setup() {
   Serial.begin(9600);
-  digitalWrite(sensorPin, HIGH); 
+  //digitalWrite(sensorPin, HIGH); 
   Serial.println("Started.");
 }
 
