@@ -1,62 +1,70 @@
-#include <TimerOne.h>
+#include <TimerOne.h>           //https://github.com/PaulStoffregen/TimerOne
 #include <SPI.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_ADXL345_U.h>
-
-
-
-//OLED
-#define OLED_RESET 4
-Adafruit_SSD1306 display(OLED_RESET);
-#define PIN_BTN 6
-//#define GRAPH_START   64
-#define GRAPH_START   56
-#define GRAPH_LEN     (SSD1306_LCDWIDTH - GRAPH_START)
-#define GRAPH_ENTRIES 32
+#include <Adafruit_GFX.h>       //https://github.com/adafruit/Adafruit-GFX-Library
+#include <Adafruit_SSD1306.h>   //https://github.com/adafruit/Adafruit_SSD1306
+#include <Adafruit_Sensor.h>    //https://github.com/adafruit/Adafruit_Sensor
+#include <Adafruit_ADXL345_U.h> //https://github.com/adafruit/Adafruit_ADXL345
 
 #if (SSD1306_LCDHEIGHT != 32)
 #error("Height incorrect, please fix Adafruit_SSD1306.h!");
 #endif
 
 
+//OLED
+#define OLED_RESET     4
+#define GRAPH_START    56
+#define GRAPH_LEN      (SSD1306_LCDWIDTH - GRAPH_START)
+#define GRAPH_ENTRIES  32
+
+Adafruit_SSD1306 display(OLED_RESET);
+
+
 //ACCEL
-#define ACL_LOOP      250
+#define ACL_LOOP       250
 Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
-sensors_event_t e_old; 
+sensors_event_t          e_old; 
 
 
 //PPM
-#define PPM_PORT=9;
-
-
-//Encoder
-#define PinCLK=2;                   // Used for generating interrupts using CLK signal
-#define PinDT=3;                    // Used for reading DT signal
-#define PinSW=4;                    // Used for the push button switch
-volatile boolean TurnDetected;
-volatile long virtualPosition=0;
-volatile unsigned int ppm = 1000;
+#define PWM_PORT       9
+volatile unsigned int  ppm = 1000;
 volatile unsigned char ppmPart = 0;
 
 
+//Encoder
+#define ENCODER_CLK    2      // Used for generating interrupts using CLK signal, it needs to stay 2 because isr0 is binded
+#define ENCODER_DT     3      // Used for reading DT signal
+#define ENCODER_BTN    6      // Used for reading the push button
+volatile boolean       TurnDetected;
+volatile long          virtualPosition=0;
+
+struct encoder {
+  volatile boolean      updated;
+  volatile unsigned int pos_min;
+  volatile unsigned int pos;
+  volatile unsigned int pos_max;
+};
 
 
-void encoderIsr ()  {                    // Interrupt service routine is executed when a HIGH to LOW transition is detected on CLK
- boolean up;
- if (digitalRead(PinCLK))
-   up = digitalRead(PinDT);
- else
-   up = !digitalRead(PinDT);
- TurnDetected = true;
+void EncoderIsr()  {                    // Interrupt service routine is executed when a HIGH to LOW transition is detected on CLK
+  boolean up;
 
-   if (up) {
+  TurnDetected = true;
+
+  if (digitalRead(ENCODER_CLK)) {
+    up = digitalRead(ENCODER_DT);
+  }
+  else {
+    up = !digitalRead(ENCODER_DT);
+  }
+
+  if (up) {
     if (virtualPosition<100) {
       virtualPosition++;
     }
-   } else {
+  } 
+  else {
     if (virtualPosition>0) {
       virtualPosition--; 
     }
@@ -64,29 +72,32 @@ void encoderIsr ()  {                    // Interrupt service routine is execute
 }
 
 
-void ppmIsr(void) {
-  if (ppmPart==0) {
-    digitalWrite(9,HIGH);
-    Timer1.setPeriod(ppm);
-    ppmPart++;
-  } else if (ppmPart==1) {
-    Timer1.setPeriod(20000-ppm);
-    digitalWrite(9,LOW);
-    ppmPart--;
-  }
+void PwmIsr(void) {
+ static unsigned int lastValue = 0;
+ if (ppmPart==0) {
+   digitalWrite(9,HIGH);
+   Timer1.setPeriod(ppm);
+   lastValue = ppm;
+   ppmPart++;
+ } 
+ else if (ppmPart==1) {
+   Timer1.setPeriod(20000-lastValue);
+   digitalWrite(9,LOW);
+   ppmPart--;
+ }
 }
 
 void setup()   {                
-  pinMode(PinCLK,INPUT);
-  pinMode(PinDT,INPUT);  
-  pinMode(PinSW,INPUT);
-  pinMode(PIN_BTN,INPUT);
-  digitalWrite(PIN_BTN, HIGH);
-  attachInterrupt (0,isr,FALLING);   // interrupt 0 is always connected to pin 2 on Arduino UNO
-  pinMode(9,OUTPUT);
+  pinMode(     PWM_PORT   , OUTPUT);
+  pinMode(     ENCODER_CLK, INPUT );
+  pinMode(     ENCODER_DT , INPUT );  
+  pinMode(     ENCODER_BTN, INPUT );
+  digitalWrite(ENCODER_BTN, HIGH  );
+
+  attachInterrupt(0, EncoderIsr, FALLING);   // interrupt 0 is always connected to pin 2 on Arduino UNO
   
   Timer1.initialize(ppm);
-  Timer1.attachInterrupt(updatePPM);
+  Timer1.attachInterrupt(PwmIsr);
    
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3C (for the 128x32)
   display.clearDisplay();
@@ -150,19 +161,14 @@ void loop() {
  if (TurnDetected || loop%ACL_LOOP==0)  { 
    ppm = map(virtualPosition, 0, 100, 1000, 2000);
 
-   g_input[0] = map(virtualPosition, 0, 100, 1000, 2000);
-   g_input[1] = map(virtualPosition, 0, 100, 1000, 2000);
-   g_input[2] = map(virtualPosition, 0, 100, 1000, 2000);
-   g_input[3] = map(virtualPosition, 0, 100, 1000, 2000);
-//   g_PPMOut.update();
- 
+
    TurnDetected = false;    
    display.clearDisplay();   
    display.setCursor(0,0);
    
    display.print("RPM ");
-   display.println(g_input[0],DEC);
-//   display.println("%");
+   display.println(ppm,DEC);
+   display.println("%");
 
    display.print("Avg ");
    display.println(avg,DEC);
@@ -193,7 +199,7 @@ void loop() {
    e_old=e;  
  }
 
- if (digitalRead(PIN_BTN)==0) {
+ if (digitalRead(ENCODER_BTN)==0) {
    maxTotal=0;
    maxAvg=0;
    graphIndex=0;
@@ -202,27 +208,6 @@ void loop() {
  
  loop++;
   
-//  display.println("%");
-
-//  display.print("ACC:");
-//  display.println(250,DEC);
-  
-//  display.println("Hello, world!");
-//  display.println("Hello, world!");
-//  display.display();
-//  delay(4000);
-//  display.clearDisplay();
-
-  // draw the first ~12 characters in the font
-//  testdrawchar();
-//  display.display();
-//  delay(2000);
-//  display.clearDisplay();
-
-  // draw scrolling text
-//  testscrolltext();
-//  delay(2000);
-//  display.clearDisplay();  
 }
 
 
