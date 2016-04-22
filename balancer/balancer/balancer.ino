@@ -19,38 +19,53 @@
 
 Adafruit_SSD1306 display(OLED_RESET);
 
+struct History {
+  unsigned int  graph[GRAPH_ENTRIES];
+  unsigned char index;
+} history;
+
 
 //ACCEL
 #define ACL_LOOP       250
-Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
-sensors_event_t          e_old; 
+boolean                  aclEnabled   = true;
+Adafruit_ADXL345_Unified accel        = Adafruit_ADXL345_Unified(12345);
+
+struct Acel {
+  unsigned int  x = 0;
+  unsigned int  y = 0;
+  unsigned int  z = 0;
+  unsigned int avg = 0;
+  unsigned int maxAvg =0;
+  unsigned long peak;
+  unsigned long sum=0;
+  unsigned char loop =1;
+  sensors_event_t  event_old; 
+} acel;
+
 
 
 //PPM
 #define PWM_PORT       9
-volatile unsigned int  ppm = 1000;
-volatile unsigned char ppmPart = 0;
+volatile unsigned int  pwm            = 1000;
+volatile unsigned char pwmPart        = 0;
 
 
 //Encoder
 #define ENCODER_CLK    2      // Used for generating interrupts using CLK signal, it needs to stay 2 because isr0 is binded
 #define ENCODER_DT     3      // Used for reading DT signal
 #define ENCODER_BTN    6      // Used for reading the push button
-volatile boolean       TurnDetected;
-volatile long          virtualPosition=0;
-
-struct encoder {
+struct Encoder {
   volatile boolean      updated;
   volatile unsigned int pos_min;
   volatile unsigned int pos;
   volatile unsigned int pos_max;
-};
+} encoder;
 
 
 void EncoderIsr()  {                    // Interrupt service routine is executed when a HIGH to LOW transition is detected on CLK
   boolean up;
 
-  TurnDetected = true;
+  encoder.updated = true;
 
   if (digitalRead(ENCODER_CLK)) {
     up = digitalRead(ENCODER_DT);
@@ -60,13 +75,13 @@ void EncoderIsr()  {                    // Interrupt service routine is executed
   }
 
   if (up) {
-    if (virtualPosition<100) {
-      virtualPosition++;
+    if (encoder.pos < encoder.pos_max) {
+      encoder.pos++;
     }
   } 
   else {
-    if (virtualPosition>0) {
-      virtualPosition--; 
+    if (encoder.pos > encoder.pos_min) {
+      encoder.pos--; 
     }
   }
 }
@@ -74,16 +89,16 @@ void EncoderIsr()  {                    // Interrupt service routine is executed
 
 void PwmIsr(void) {
  static unsigned int lastValue = 0;
- if (ppmPart==0) {
-   digitalWrite(9,HIGH);
-   Timer1.setPeriod(ppm);
-   lastValue = ppm;
-   ppmPart++;
+ if (pwmPart == 0) {
+   digitalWrite(9, HIGH);
+   Timer1.setPeriod(pwm);
+   lastValue = pwm;
+   pwmPart++;
  } 
- else if (ppmPart==1) {
+ else if (pwmPart == 1) {
    Timer1.setPeriod(20000-lastValue);
-   digitalWrite(9,LOW);
-   ppmPart--;
+   digitalWrite(9, LOW);
+   pwmPart--;
  }
 }
 
@@ -96,7 +111,7 @@ void setup()   {
 
   attachInterrupt(0, EncoderIsr, FALLING);   // interrupt 0 is always connected to pin 2 on Arduino UNO
   
-  Timer1.initialize(ppm);
+  Timer1.initialize(pwm);
   Timer1.attachInterrupt(PwmIsr);
    
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3C (for the 128x32)
@@ -121,67 +136,66 @@ void setup()   {
   }
   accel.setRange(ADXL345_RANGE_4_G);
   delay(200);
-  accel.getEvent(&e_old);
+  accel.getEvent(&acel.event_old);
+
+  encoder.pos_min = 0;
+  encoder.pos_max = 100;
 }
 
 
 void loop() {
-
-  static unsigned char loop =1;
-  static unsigned int  maxX,maxY,maxZ,avg,maxAvg;
-  static unsigned long maxTotal,sum=0;
-  static unsigned int  graph[GRAPH_ENTRIES];
-  static unsigned char graphIndex;
- 
-
-  /* Get a new sensor event */ 
   sensors_event_t e; 
-  accel.getEvent(&e);
+  
+  if (aclEnabled) {
+    
+    // Get sensor data
+    accel.getEvent(&e);
 
-  unsigned int diffX = round(abs(e.acceleration.x - e_old.acceleration.x)*100);
-  unsigned int diffY = round(abs(e.acceleration.y - e_old.acceleration.y)*100);
-  unsigned int diffZ = round(abs(e.acceleration.z - e_old.acceleration.z)*100);
+    unsigned int diffX = round(abs(e.acceleration.x - acel.event_old.acceleration.x)*100);
+    unsigned int diffY = round(abs(e.acceleration.y - acel.event_old.acceleration.y)*100);
+    unsigned int diffZ = round(abs(e.acceleration.z - acel.event_old.acceleration.z)*100);
 
-  maxX=max(maxX,diffX);
-  maxY=max(maxY,diffY);
-  maxZ=max(maxZ,diffZ);
+    acel.x=max(acel.x, diffX);
+    acel.y=max(acel.y, diffY);
+    acel.z=max(acel.z, diffZ);
 
-  sum+=diffX+diffY+diffZ;
+    acel.sum += diffX + diffY + diffZ;
 
-  maxTotal=max(maxTotal,maxX+maxY+maxZ);
+    acel.peak = max(acel.peak, acel.x + acel.y + acel.z);
+  }
 
-  if (loop%ACL_LOOP==0) { 
-    avg=sum/ACL_LOOP;
-    maxAvg=max(maxAvg,avg);
-    graph[graphIndex]=avg;
-    graphIndex=(graphIndex+1)%GRAPH_ENTRIES;
+  if (acel.loop%ACL_LOOP == 0) { 
+    acel.avg                     = acel.sum/ACL_LOOP;
+    acel.maxAvg                  = max(acel.maxAvg, acel.avg);
+    history.graph[history.index] = acel.avg;
+    history.index                = (history.index+1) % GRAPH_ENTRIES;
   }
 
 
- if (TurnDetected || loop%ACL_LOOP==0)  { 
-   ppm = map(virtualPosition, 0, 100, 1000, 2000);
+ if (encoder.updated || acel.loop%ACL_LOOP==0)  { 
+   pwm = map(encoder.pos, 0, 100, 1000, 2000);
 
 
-   TurnDetected = false;    
+   encoder.updated = false;    
    display.clearDisplay();   
    display.setCursor(0,0);
    
    display.print("RPM ");
-   display.println(ppm,DEC);
+   display.println(encoder.pos, DEC);
    display.println("%");
 
    display.print("Avg ");
-   display.println(avg,DEC);
+   display.println(acel.avg,    DEC);
    
    display.print("MA  ");
-   display.println(maxAvg,DEC);
+   display.println(acel.maxAvg, DEC);
 
    display.print("Peak");
-   display.println(maxTotal,DEC);
+   display.println(acel.peak,   DEC);
    
    for (unsigned char i=0;i<GRAPH_ENTRIES;i++) {
-    const unsigned long entry = graph[(i+graphIndex)%GRAPH_ENTRIES];
-    const unsigned int  len   = (entry * GRAPH_LEN) / maxAvg;
+    const unsigned long entry = history.graph[(i+history.index)%GRAPH_ENTRIES];
+    const unsigned int  len   = (entry * GRAPH_LEN) / acel.maxAvg;
     display.drawLine(GRAPH_START,     i, 
                      GRAPH_START+len, i, 
                      WHITE);
@@ -190,23 +204,25 @@ void loop() {
    display.display();
  }
 
- if (loop%ACL_LOOP==0) {
-   maxX=0;
-   maxY=0;
-   maxZ=0;
-   sum=0;
-   loop=0;
-   e_old=e;  
+ if ( acel.loop%ACL_LOOP == 0 ) {
+   acel.x          = 0;
+   acel.y          = 0;
+   acel.z          = 0;
+   acel.sum        = 0;
+   acel.loop       = 0;
+   acel.event_old  = e;  
  }
 
- if (digitalRead(ENCODER_BTN)==0) {
-   maxTotal=0;
-   maxAvg=0;
-   graphIndex=0;
-   for (unsigned char i=0;i<GRAPH_ENTRIES;i++) graph[i]=0;
+ if ( digitalRead(ENCODER_BTN) == 0 ) {
+   acel.peak     = 0;
+   acel.maxAvg   = 0;
+   history.index = 0;
+   for (unsigned char i=0;i<GRAPH_ENTRIES;i++) {
+    history.graph[i]=0;
+  }
  }
  
- loop++;
+ acel.loop++;
   
 }
 
