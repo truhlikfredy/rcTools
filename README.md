@@ -6,5 +6,6 @@ Arduino library which allows 4 way dpad to be attached to 1 single pin (supports
 
 # Balancer
 Automates couple tasks, drives engines with consistent profile and speed ranges and measures vibrations. Graphs them on the LCD as well.
+
 ![solved maze]
 (https://raw.githubusercontent.com/truhlikfredy/rcTools/master/screenShots/balancer1.jpg)
