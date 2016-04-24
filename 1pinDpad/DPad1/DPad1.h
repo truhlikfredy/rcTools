@@ -17,7 +17,7 @@ public:
         unsigned char diff           = DEFAULT_VALUE_VARIATION, 
         unsigned int  debounce       = DEFAULT_DEBOUNCE_ITERATIONS);
 
-  void aquireState();
+  unsigned char aquireState();
   bool isStateChanged();
   unsigned char getState();
   

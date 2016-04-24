@@ -27,7 +27,7 @@ unsigned char DPad1::findMatch(unsigned int input) {
 }
 
 
-void DPad1::aquireState() {
+unsigned char DPad1::aquireState() {
   globalStateOld = globalState;
 
   unsigned char state = findMatch(analogRead(port));
@@ -41,6 +41,7 @@ void DPad1::aquireState() {
   if (iterations > debounce) {
     globalState = state;
   }
+  return globalState;
 }
 
 
