@@ -16,6 +16,7 @@
 #define GRAPH_START    56
 #define GRAPH_LEN      (SSD1306_LCDWIDTH - GRAPH_START)
 #define GRAPH_ENTRIES  32
+#define SPLASH_DELAY   2000
 
 Adafruit_SSD1306 display(OLED_RESET);
 
@@ -29,6 +30,8 @@ struct History {
 #define ACL_LOOP       250
 boolean                  aclEnabled   = true;
 Adafruit_ADXL345_Unified accel        = Adafruit_ADXL345_Unified(12345);
+sensors_event_t          event; 
+
 
 struct Acel {
   unsigned int  x = 0;
@@ -44,7 +47,7 @@ struct Acel {
 
 
 
-//PPM
+//PPM pwm
 #define PWM_PORT       9
 volatile unsigned int  pwm            = 1000;
 volatile unsigned char pwmPart        = 0;
@@ -88,32 +91,43 @@ void EncoderIsr()  {                    // Interrupt service routine is executed
 
 
 void PwmIsr(void) {
- static unsigned int lastValue = 0;
- if (pwmPart == 0) {
-   digitalWrite(9, HIGH);
-   Timer1.setPeriod(pwm);
-   lastValue = pwm;
-   pwmPart++;
- } 
- else if (pwmPart == 1) {
-   Timer1.setPeriod(20000-lastValue);
-   digitalWrite(9, LOW);
-   pwmPart--;
- }
+  static unsigned int lastValue = 0;
+  if (pwmPart == 0) {
+    digitalWrite(9, HIGH);
+    Timer1.setPeriod(pwm);
+    lastValue = pwm;
+    pwmPart++;
+  } 
+  else if (pwmPart == 1) {
+    Timer1.setPeriod(20000-lastValue);
+    digitalWrite(9, LOW);
+    pwmPart--;
+  }
 }
 
-void setup()   {                
-  pinMode(     PWM_PORT   , OUTPUT);
+
+void setupEncoder() {
   pinMode(     ENCODER_CLK, INPUT );
   pinMode(     ENCODER_DT , INPUT );  
   pinMode(     ENCODER_BTN, INPUT );
   digitalWrite(ENCODER_BTN, HIGH  );
-
-  attachInterrupt(0, EncoderIsr, FALLING);   // interrupt 0 is always connected to pin 2 on Arduino UNO
   
+  attachInterrupt(0, EncoderIsr, FALLING);   // interrupt 0 is always connected to pin 2 on Arduino UNO  
+
+  encoder.pos_min = 0;
+  encoder.pos_max = 100;  
+}
+
+
+void setupPwm() {
+  pinMode(PWM_PORT, OUTPUT);
+
   Timer1.initialize(pwm);
-  Timer1.attachInterrupt(PwmIsr);
-   
+  Timer1.attachInterrupt(PwmIsr);  
+}
+
+
+void setupLcd() {
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3C (for the 128x32)
   display.clearDisplay();
 
@@ -124,36 +138,48 @@ void setup()   {
   display.println("Engine Balancer v1.0");
   display.println("by: Anton Krug 2016" );
   display.display();
-  delay(2000);
-
-  if (!accel.begin()) {
-    display.clearDisplay();
-    display.setCursor(0,8);
-    display.println("No ADXL456 detected!");
-    display.println("Program halted.");
-    display.display();
-    while(1);
-  }
-  accel.setRange(ADXL345_RANGE_4_G);
-  delay(200);
-  accel.getEvent(&acel.event_old);
-
-  encoder.pos_min = 0;
-  encoder.pos_max = 100;
+  delay(SPLASH_DELAY);  
 }
 
 
-void loop() {
-  sensors_event_t e; 
-  
+void setupAccel() {
+  if (!accel.begin()) {
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.println("No ADXL456 detected!");
+    display.println("Program halted.");
+    display.println("Press button to");
+    display.println("continue without it.");
+    display.display();
+    while(aclEnabled) {
+      if ( digitalRead(ENCODER_BTN) == 0 )  {
+        aclEnabled = false;
+      }
+    }
+  }
+  accel.setRange(ADXL345_RANGE_4_G);
+  delay(200);
+  accel.getEvent(&acel.event_old);  
+}
+
+
+void setup()   {                
+  setupEncoder();
+  setupPwm();
+  setupLcd();
+  setupAccel();
+}
+
+
+void measure() {  
   if (aclEnabled) {
     
     // Get sensor data
-    accel.getEvent(&e);
+    accel.getEvent(&event);
 
-    unsigned int diffX = round(abs(e.acceleration.x - acel.event_old.acceleration.x)*100);
-    unsigned int diffY = round(abs(e.acceleration.y - acel.event_old.acceleration.y)*100);
-    unsigned int diffZ = round(abs(e.acceleration.z - acel.event_old.acceleration.z)*100);
+    unsigned int diffX = round(abs(event.acceleration.x - acel.event_old.acceleration.x)*100);
+    unsigned int diffY = round(abs(event.acceleration.y - acel.event_old.acceleration.y)*100);
+    unsigned int diffZ = round(abs(event.acceleration.z - acel.event_old.acceleration.z)*100);
 
     acel.x=max(acel.x, diffX);
     acel.y=max(acel.y, diffY);
@@ -169,61 +195,70 @@ void loop() {
     acel.maxAvg                  = max(acel.maxAvg, acel.avg);
     history.graph[history.index] = acel.avg;
     history.index                = (history.index+1) % GRAPH_ENTRIES;
+  } 
+}
+
+void measurePost() {
+  if ( acel.loop%ACL_LOOP == 0 ) {
+    acel.x          = 0;
+    acel.y          = 0;
+    acel.z          = 0;
+    acel.sum        = 0;
+    acel.loop       = 0;
+    acel.event_old  = event;  
   }
+  
+  if ( digitalRead(ENCODER_BTN) == 0 ) {
+    acel.peak     = 0;
+    acel.maxAvg   = 0;
+    history.index = 0;
+    for (unsigned char i=0;i<GRAPH_ENTRIES;i++) {
+      history.graph[i]=0;
+    }
+  }
+  
+  acel.loop++;  
+}
 
 
- if (encoder.updated || acel.loop%ACL_LOOP==0)  { 
-   pwm = map(encoder.pos, 0, 100, 1000, 2000);
-
-
-   encoder.updated = false;    
-   display.clearDisplay();   
-   display.setCursor(0,0);
-   
-   display.print("RPM ");
-   display.println(encoder.pos, DEC);
-   display.println("%");
-
-   display.print("Avg ");
-   display.println(acel.avg,    DEC);
-   
-   display.print("MA  ");
-   display.println(acel.maxAvg, DEC);
-
-   display.print("Peak");
-   display.println(acel.peak,   DEC);
-   
-   for (unsigned char i=0;i<GRAPH_ENTRIES;i++) {
+void displayGraph() {
+  encoder.updated = false;    
+  
+  display.clearDisplay();   
+  display.setCursor(0,0);
+  
+  display.print("RPM ");
+  display.print(encoder.pos, DEC);
+  display.println("%");
+  
+  display.print("Avg ");
+  display.println(acel.avg,    DEC);
+  
+  display.print("MA  ");
+  display.println(acel.maxAvg, DEC);
+  
+  display.print("Peak");
+  display.println(acel.peak,   DEC);
+  
+  for (unsigned char i=0;i<GRAPH_ENTRIES;i++) {
     const unsigned long entry = history.graph[(i+history.index)%GRAPH_ENTRIES];
     const unsigned int  len   = (entry * GRAPH_LEN) / acel.maxAvg;
     display.drawLine(GRAPH_START,     i, 
                      GRAPH_START+len, i, 
                      WHITE);
-   }
-
-   display.display();
- }
-
- if ( acel.loop%ACL_LOOP == 0 ) {
-   acel.x          = 0;
-   acel.y          = 0;
-   acel.z          = 0;
-   acel.sum        = 0;
-   acel.loop       = 0;
-   acel.event_old  = e;  
- }
-
- if ( digitalRead(ENCODER_BTN) == 0 ) {
-   acel.peak     = 0;
-   acel.maxAvg   = 0;
-   history.index = 0;
-   for (unsigned char i=0;i<GRAPH_ENTRIES;i++) {
-    history.graph[i]=0;
   }
- }
- 
- acel.loop++;
   
+  display.display();
+}
+
+
+void loop() {
+  measure();
+  if (encoder.updated || acel.loop%ACL_LOOP==0)  { 
+    pwm = map(encoder.pos, 0, 100, 1000, 2000);
+    displayGraph();
+  }  
+  measurePost();
 }
 
 
