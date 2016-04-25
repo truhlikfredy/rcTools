@@ -65,6 +65,19 @@ struct Encoder {
 } encoder;
 
 
+//Menu
+typedef enum {ROOT, 
+              MANUAL, 
+              AUTO_SET, 
+              AUTO_SET_START, 
+              AUTO_SET_END, 
+              AUTO_SET_PROFILE, 
+              AUTO_RUN,
+              AUTO_FINISHED
+              } menuModeType;
+menuModeType menuMode = ROOT;
+
+
 void EncoderIsr()  {                    // Interrupt service routine is executed when a HIGH to LOW transition is detected on CLK
   boolean up;
 
