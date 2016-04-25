@@ -75,7 +75,9 @@ typedef enum {ROOT,
               AUTO_RUN,
               AUTO_FINISHED
               } menuModeType;
-menuModeType menuMode = ROOT;
+              
+menuModeType menuMode    = ROOT;
+menuModeType menuModeOld = MANUAL;
 
 
 void EncoderIsr()  {                    // Interrupt service routine is executed when a HIGH to LOW transition is detected on CLK
@@ -265,14 +267,73 @@ void displayGraph(unsigned int rpm, bool percentage) {
 }
 
 
-void loop() {
+void menuChangeEncoderSettings() {
+  if (menuMode!=menuModeOld) {
+    switch (menuMode) {
+      
+      case ROOT:
+        encoder.pos     = 0;
+        encoder.pos_min = 0;
+        encoder.pos_max = 2;
+        break;
+       
+    }    
+  }
+  menuModeOld=menuMode;  
+}
+
+
+void menuRoot() {
+  display.clearDisplay();
+  display.setCursor(0,0);  
+  switch (encoder.pos) {
+    
+    case 0:
+      display.println("Manual run");
+      break;
+      
+    case 1:
+      display.println("Automated run");
+      break;
+
+    case 2:
+      display.println("Calibrate ESC");
+      break;
+      
+      
+  }
+  display.display();  
+}
+
+
+void menuManual() {
   measure();
   if (encoder.updated || acel.loop%ACL_LOOP==0)  { 
     pwm = map(encoder.pos, 0, 100, 1000, 2000);
-//    displayGraph(encoder.pos, true);
+    //    displayGraph(encoder.pos, true);
     displayGraph(pwm, false);
   }  
-  measurePost();
+  measurePost();  
+}
+
+
+void menuDisplay() {
+    switch (menuMode) {
+      
+      case ROOT:
+        menuRoot();
+        break;
+
+      case MANUAL:
+        menuManual();
+        break;
+    }    
+}
+
+void loop() {
+  menuChangeEncoderSettings();
+  menuDisplay();
+  
 }
 
 
