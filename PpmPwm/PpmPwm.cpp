@@ -2,6 +2,30 @@
 
 #include <TimerOne.h>           //https://github.com/PaulStoffregen/TimerOne
 
+volatile PpmPwm* self;
+
+
+void PpmPwmIsr(void) {
+  static unsigned int sumValues = 0;
+
+  if (self->portIndex == (self->ports+1) ) {
+    Timer1.setPeriod(20000-sumValues);
+    digitalWrite(self->portPins[self->portIndex-1], LOW);
+    sumValues=0;
+    self->portIndex=0;
+  }
+  else {
+    if (self->portIndex > 0) {
+      digitalWrite(self->portPins[self->portIndex-1], LOW);
+    }
+    digitalWrite(self->portPins[self->portIndex], HIGH);
+
+    Timer1.setPeriod(self->portPwm[self->portIndex]);
+    sumValues+= self->portPwm[self->portIndex];
+    self->portIndex++;
+  }
+}
+
 
 PpmPwm::PpmPwm(unsigned char ports, ...) {
   if (ports > MAX_PORTS) {
@@ -25,7 +49,12 @@ PpmPwm::PpmPwm(unsigned char ports, ...) {
   this->portIndex=0;
 
   Timer1.initialize(1000*1000);
-  Timer1.attachInterrupt(PpmPwm::PwmIsr);
+  Timer1.attachInterrupt(PpmPwmIsr);
+  self = this;
+}
+
+
+PpmPwm::PpmPwm() {
 }
 
 
@@ -34,26 +63,6 @@ void PpmPwm::Update(unsigned char portIndex, unsigned int value) {
 }
 
 
-void PpmPwm::PwmIsr(void) {
-  static unsigned int sumValues = 0;
-
-  if (this.portIndex == (this->ports+1) ) {
-    Timer1.setPeriod(20000-sumValues);
-    digitalWrite(this->ports[this->portIndex-1], LOW);
-    sumValues=0;
-    this->portIndex=0;
-  }
-  else {
-    if (this->portIndex > 0) {
-      digitalWrite(this->ports[this->portIndex-1], LOW);
-    }
-
-    digitalWrite(this->ports[this->portIndex], HIGH);
-    Timer1.setPeriod(this->portPwm[this->portIndex]);
-    sumValues+= this->portPwm[this->portIndex];
-    this->portIndex++;
-  }
-}
 
 
 

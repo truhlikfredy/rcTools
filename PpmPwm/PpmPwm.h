@@ -12,15 +12,16 @@ class PpmPwm {
 
 public:
   PpmPwm(unsigned char ports, ...);
+  PpmPwm();
   void Update(unsigned char portIndex, unsigned int value);
-
-private:
-           unsigned char ports;
-           unsigned int  portPins[MAX_PORTS];
   volatile unsigned int  portPwm [MAX_PORTS];
   volatile unsigned char portIndex;
+           unsigned char ports;
+           unsigned int  portPins[MAX_PORTS];
 
-  void PwmIsr();
+private:
+
+//  void PwmIsr();
 
 
 };
