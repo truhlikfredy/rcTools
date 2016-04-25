@@ -221,15 +221,15 @@ void measurePost() {
 }
 
 
-void displayGraph() {
+void displayGraph(unsigned int rpm, bool percentage) {
   encoder.updated = false;    
   
   display.clearDisplay();   
   display.setCursor(0,0);
   
   display.print("RPM ");
-  display.print(encoder.pos, DEC);
-  display.println("%");
+  display.print(rpm, DEC);
+  display.println((percentage)?"%":"");
   
   display.print("Avg ");
   display.println(acel.avg,    DEC);
@@ -256,7 +256,8 @@ void loop() {
   measure();
   if (encoder.updated || acel.loop%ACL_LOOP==0)  { 
     pwm = map(encoder.pos, 0, 100, 1000, 2000);
-    displayGraph();
+//    displayGraph(encoder.pos, true);
+    displayGraph(pwm, false);
   }  
   measurePost();
 }
