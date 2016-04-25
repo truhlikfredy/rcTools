@@ -21,7 +21,7 @@ public:
 
 private:
 
-//  void PwmIsr();
+  static void PwmIsr(void);
 
 
 };

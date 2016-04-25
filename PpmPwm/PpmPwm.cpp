@@ -50,12 +50,18 @@ PpmPwm::PpmPwm(unsigned char ports, ...) {
 
   Timer1.initialize(1000*1000);
   Timer1.attachInterrupt(PpmPwmIsr);
+  Timer1.attachInterrupt(this->PwmIsr);
   self = this;
 }
 
 
 PpmPwm::PpmPwm() {
 }
+
+void PpmPwm::PwmIsr(void) {
+
+}
+
 
 
 void PpmPwm::Update(unsigned char portIndex, unsigned int value) {
