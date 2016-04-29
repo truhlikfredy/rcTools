@@ -6,23 +6,28 @@
 #ifndef PPM_PWM_h
 #define PPM_PWM_h
 
-#define MAX_PORTS   8
+#define MAX_PORTS     8
+#define MAX_TIMEFRAME 20000
+
+
+#define TIMER1_RESOLUTION 65536UL
 
 class PpmPwm {
 
 public:
+
   PpmPwm(unsigned char ports, ...);
-  PpmPwm();
-  void Update(unsigned char portIndex, unsigned int value);
-  volatile unsigned int  portPwm [MAX_PORTS];
-  volatile unsigned char portIndex;
-           unsigned char ports;
-           unsigned int  portPins[MAX_PORTS];
+
+  void         updatePort(unsigned char portIndex, unsigned int value);
+  unsigned int getPort(unsigned char portIndex);
+  static void pwmIsr(void);
 
 private:
-
-  static void PwmIsr(void);
-
+  volatile static   PpmPwm* self;
+  volatile unsigned int     portPwm [MAX_PORTS];
+  volatile unsigned char    portIndex;
+           unsigned char    ports;
+           unsigned int     portPins[MAX_PORTS];
 
 };
 

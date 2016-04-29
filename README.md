@@ -7,6 +7,9 @@ Arduino library which allows 4 way dpad to be attached to 1 single pin (supports
 ![4 way Dpad]
 (https://raw.githubusercontent.com/truhlikfredy/rcTools/master/screenShots/dpad.jpg)
 
+https://www.virtuabotix.com/product/virtuabotix-1-pin-dpad-1-0-versalino-control-arduino-circuits/
+I'm not sure how exatly this product is made but probably with right values this library work with it. Probably fastes way to make this kind of dpad is to solder it quickly by hand on small board.
+
 
 # PpmPwm
 Arduino library to generate PWM signals on mutliple pins with same time offsets and delays like it would be generated from PPM signal.
