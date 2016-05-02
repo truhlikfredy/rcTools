@@ -6,8 +6,9 @@
 #ifndef PPM_PWM_h
 #define PPM_PWM_h
 
-#define MAX_PORTS     8                 //Limit maximum PWM to emulate fact that PPM source would be limited as well
-#define MAX_TIMEFRAME (40*1000)         //20ms timeframe in /8 pre-scaler ticks
+#define DEFAULT_TIMING  (1000*2)          //Default timing for unset port
+#define MAX_PORTS       8                 //Limit maximum PWM to emulate fact that PPM source would be limited as well
+#define MAX_TIMEFRAME   (20*1000*2)       //20ms timeframe in /8 pre-scaler ticks
 
 class PpmPwm {
 
@@ -22,6 +23,8 @@ public:
            void  updatePortFloat(     unsigned char portIndex, float percentage        );
            void  updatePortPercentage(unsigned char portIndex, unsigned char percentage);
   unsigned int   getPortRaw(          unsigned char portIndex                          );
+  unsigned int   getPortMs(           unsigned char portIndex                          );
+  unsigned int   getPortMsWithOffset( unsigned char portIndex                          );
 
 
 private:

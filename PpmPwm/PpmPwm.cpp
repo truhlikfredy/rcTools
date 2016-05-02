@@ -20,7 +20,7 @@ PpmPwm::PpmPwm(unsigned char ports, ...) {
   va_start(arguments, ports);
   for (unsigned char i = 0; i < ports; i++) {
     this->portPins[i] = va_arg(arguments, int);
-    this->portPwm[i]  = 1500*2;                 //set default value to 1500ms which is 3000 ticks
+    this->portPwm[i]  = DEFAULT_TIMING;            //set default timing for unset port
 
     pinMode(     this->portPins[i], OUTPUT);
     digitalWrite(this->portPins[i], LOW   );
@@ -107,3 +107,11 @@ unsigned int PpmPwm::getPortRaw(unsigned char portIndex) {
 }
 
 
+unsigned int PpmPwm::getPortMs(unsigned char portIndex) {
+  return (this->portPwm[portIndex]/2)-1000;
+}
+
+
+unsigned int PpmPwm::getPortMsWithOffset(unsigned char portIndex) {
+  return this->portPwm[portIndex]/2;
+}
