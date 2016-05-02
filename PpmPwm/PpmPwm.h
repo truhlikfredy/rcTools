@@ -7,10 +7,7 @@
 #define PPM_PWM_h
 
 #define MAX_PORTS     8
-#define MAX_TIMEFRAME 20000
-
-
-#define TIMER1_RESOLUTION 65536UL
+#define MAX_TIMEFRAME 40000         //20ms in /8 pre-scaler values
 
 class PpmPwm {
 
@@ -18,14 +15,15 @@ public:
 
   PpmPwm(unsigned char ports, ...);
 
-  void         updatePort(unsigned char portIndex, unsigned int value);
-  unsigned int getPort(unsigned char portIndex);
-  static void pwmIsr(void);
+  static   void  initializeTimer(void);
+  static   void  pwmIsr(void);
+           void  updatePortRaw(unsigned char portIndex, unsigned int value);
+           void  updatePortMs( unsigned char portIndex, unsigned int value);
+  unsigned int   getPortRaw(   unsigned char portIndex);
 
 private:
   volatile static   PpmPwm* self;
   volatile unsigned int     portPwm [MAX_PORTS];
-  volatile unsigned char    portIndex;
            unsigned char    ports;
            unsigned int     portPins[MAX_PORTS];
 
