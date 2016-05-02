@@ -16,7 +16,7 @@ public:
 
   PpmPwm(unsigned char ports, ...);
 
-  static   void  initializeTimer(void);
+  static   void  initializePwmTimer(void);
   static   void  pwmIsr(void);
            void  updatePortRaw(       unsigned char portIndex, unsigned int value      );
            void  updatePortMs(        unsigned char portIndex, unsigned int value      );

@@ -31,7 +31,7 @@ PpmPwm::PpmPwm(unsigned char ports, ...) {
 }
 
 
-void PpmPwm::initializeTimer() {
+void PpmPwm::initializePwmTimer() {
   cli();                   //disable interrupts
 
   //clear registers
