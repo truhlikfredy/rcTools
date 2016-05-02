@@ -1,6 +1,6 @@
-#include <TimerOne.h>           //https://github.com/PaulStoffregen/TimerOne
 #include <SPI.h>
 #include <Wire.h>
+#include <PpmPwm.h>             //https://github.com/truhlikfredy/rcTools/tree/master/PpmPwm
 #include <Adafruit_GFX.h>       //https://github.com/adafruit/Adafruit-GFX-Library
 #include <Adafruit_SSD1306.h>   //https://github.com/adafruit/Adafruit_SSD1306
 #include <Adafruit_Sensor.h>    //https://github.com/adafruit/Adafruit_Sensor
@@ -48,9 +48,7 @@ struct Acel {
 
 
 //PPM pwm
-#define PWM_PORT       9
-volatile unsigned int  pwm            = 1000;
-volatile unsigned char pwmPart        = 0;
+PpmPwm pwm(4,9,10,11,12);  //4 ports D9, D10, D11, D12
 
 
 //Encoder
@@ -73,11 +71,14 @@ typedef enum {ROOT,
               AUTO_SET_END, 
               AUTO_SET_PROFILE, 
               AUTO_RUN,
-              AUTO_FINISHED
+              AUTO_FINISHED,
+              ESC_CALIBRATE, 
+              INVALID
               } menuModeType;
               
-menuModeType menuMode    = ROOT;
-menuModeType menuModeOld = MANUAL;
+//menuModeType menuMode    = ROOT;
+menuModeType menuMode    = MANUAL;
+menuModeType menuModeOld = INVALID;
 
 
 void EncoderIsr()  {                    // Interrupt service routine is executed when a HIGH to LOW transition is detected on CLK
@@ -105,22 +106,6 @@ void EncoderIsr()  {                    // Interrupt service routine is executed
 }
 
 
-void PwmIsr(void) {
-  static unsigned int lastValue = 0;
-  if (pwmPart == 0) {
-    digitalWrite(9, HIGH);
-    Timer1.setPeriod(pwm);
-    lastValue = pwm;
-    pwmPart++;
-  } 
-  else if (pwmPart == 1) {
-    Timer1.setPeriod(20000-lastValue);
-    digitalWrite(9, LOW);
-    pwmPart--;
-  }
-}
-
-
 void setupEncoder() {
   pinMode(     ENCODER_CLK, INPUT );
   pinMode(     ENCODER_DT , INPUT );  
@@ -135,10 +120,7 @@ void setupEncoder() {
 
 
 void setupPwm() {
-  pinMode(PWM_PORT, OUTPUT);
-
-  Timer1.initialize(pwm);
-  Timer1.attachInterrupt(PwmIsr);  
+  PpmPwm::initializeTimer();
 }
 
 
@@ -309,9 +291,9 @@ void menuRoot() {
 void menuManual() {
   measure();
   if (encoder.updated || acel.loop%ACL_LOOP==0)  { 
-    pwm = map(encoder.pos, 0, 100, 1000, 2000);
+    pwm.updatePortPercentage(0,encoder.pos);
     //    displayGraph(encoder.pos, true);
-    displayGraph(pwm, false);
+    displayGraph(pwm.getPortMsWithOffset(0), false);
   }  
   measurePost();  
 }
