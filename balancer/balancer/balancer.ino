@@ -120,7 +120,7 @@ void setupEncoder() {
 
 
 void setupPwm() {
-  PpmPwm::initializeTimer();
+  pwm.initializePwmOutput();
 }
 
 

@@ -7,7 +7,7 @@ void setup() {
   pwm.updatePortMs(1,333);    //will set chanel to 1333ms 
   pwm.updatePortMs(2,666);    //will set chanel to 1666ms 
   pwm.updatePortMs(3,1000);   //will set chanel to 2000ms 
-  PpmPwm::initializePwmTimer();
+  pwm.initializePwmOutput();
 }
 
 void loop() {

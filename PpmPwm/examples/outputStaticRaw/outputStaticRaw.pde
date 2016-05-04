@@ -10,7 +10,7 @@ void setup() {
   pwm.updatePortRaw(1,2666);   //will set chanel to 1333ms 
   pwm.updatePortRaw(2,3332);   //will set chanel to 1666ms 
   pwm.updatePortRaw(3,4000);   //will set chanel to 2000ms 
-  PpmPwm::initializePwmTimer();
+  pwm.initializePwmOutput();
 }
 
 void loop() {
