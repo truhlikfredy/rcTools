@@ -10,6 +10,7 @@ Arduino library which allows 4 way dpad to be attached to 1 single pin (supports
 
 ![emulator]
 (https://raw.githubusercontent.com/truhlikfredy/rcTools/master/screenShots/dpad2.jpg)
+
 Example usage, I made RC controller signal emulator using this library
 
 
@@ -30,5 +31,6 @@ Automates couple tasks, drives engines with consistent profile and speed ranges 
 (https://raw.githubusercontent.com/truhlikfredy/rcTools/master/screenShots/balancer1.jpg)
 
 Prototype PCB:
+
 ![balancer PCB]
 (https://raw.githubusercontent.com/truhlikfredy/rcTools/master/screenShots/balancer2.jpg)
