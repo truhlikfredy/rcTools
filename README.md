@@ -7,6 +7,12 @@ Arduino library which allows 4 way dpad to be attached to 1 single pin (supports
 ![4 way Dpad]
 (https://raw.githubusercontent.com/truhlikfredy/rcTools/master/screenShots/dpad.jpg)
 
+
+![emulator]
+(https://raw.githubusercontent.com/truhlikfredy/rcTools/master/screenShots/dpad2.jpg)
+Example usage, I made RC controller signal emulator using this library
+
+
 https://www.virtuabotix.com/product/virtuabotix-1-pin-dpad-1-0-versalino-control-arduino-circuits/
 I'm not sure how exatly this product is made but probably with right values this library work with it. Probably fastes way to make this kind of dpad is to solder it quickly by hand on small board.
 
@@ -22,3 +28,7 @@ Automates couple tasks, drives engines with consistent profile and speed ranges 
 
 ![balancer GUI]
 (https://raw.githubusercontent.com/truhlikfredy/rcTools/master/screenShots/balancer1.jpg)
+
+Prototype PCB:
+![balancer PCB]
+(https://raw.githubusercontent.com/truhlikfredy/rcTools/master/screenShots/balancer2.jpg)
