@@ -6,7 +6,7 @@
 #ifndef DPAD1_h
 #define DPAD1_h
 
-#define DEFAULT_VALUE_VARIATION     11
+#define DEFAULT_VALUE_VARIATION     14
 #define DEFAULT_DEBOUNCE_ITERATIONS 150
 
 class DPad1 {
