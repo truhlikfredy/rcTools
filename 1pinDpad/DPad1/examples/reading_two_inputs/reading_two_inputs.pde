@@ -8,7 +8,7 @@
 // This table was calculated with 20k pull up resistor, if you different setup, use
 // calibrate snippet to read all your values for your resistors.
 //                               0     1    2    3    4    5      6    7    8    9
-unsigned int  directionsA[] = {1010 , 365, 485, 419, 608, 65535, 765, 265, 317, 289 };
+unsigned int  directionsA[] = {1010 , 365, 485, 419, 608, 65535, 765, 262, 316, 284 };
 
 //You can specify different directions table and different noise difference 
 //values  and different debounce iteractions for each instance:
