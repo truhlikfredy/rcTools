@@ -1,10 +1,13 @@
-#define serialSpeed  9600
+//comment out to disable serial output
+//#define serialSpeed  9600
 
+#include <PpmPwm.h>
+#include <DPad1.h>
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <DPad1.h>
+
 
 #define OLED_RESET 4
 Adafruit_SSD1306 display(OLED_RESET);
@@ -23,10 +26,19 @@ unsigned int  directionsB[] = {1010 , 419, 488, 366, 757, 65535, 601, 276, 306, 
 
 DPad1 left (sensorPinA, &directionsA[0]);
 DPad1 right(sensorPinB, &directionsB[0]);
+PpmPwm pwm(4, 10, 11, 12, 13);
 
 
 void setup() {
-  Serial.begin(serialSpeed     );
+  #if defined(serialSpeed)
+  Serial.begin(serialSpeed);
+  #endif
+
+  pwm.updatePortMs(0,500);   
+  pwm.updatePortMs(1,500);   
+  pwm.updatePortMs(2,500);   
+  pwm.updatePortMs(3,500);  
+  pwm.initializePwmOutput();
   
   // Set sensor pins to pull ups if you are not using external pull-ups
   //  digitalWrite(sensorPinA, HIGH); 
@@ -56,12 +68,14 @@ void loop() {
   if (left.isStateChanged() || right.isStateChanged()) {
 
     //Print out states to serial line (it's not needed but it doesn't hurt)
+    #if defined(serialSpeed)
     Serial.print(left.getState());
     Serial.print(" ");
     Serial.print(right.getState());
     Serial.println();
+    #endif
 
-    //transfer the left dPad state into PPM values
+    //transfer the left dPad state into PPM type PWM values
     switch (left.getState()) {
       case 0: chThr=1500;   chYaw=1500;  break;
       case 1: chThr=1000;   chYaw=1000;  break;      
@@ -75,7 +89,7 @@ void loop() {
       case 9: chThr=2000;   chYaw=2000;  break;      
     }
 
-    //transfer the right dPad state into PPM values
+    //transfer the right dPad state into PPM type PWM values
     switch (right.getState()) {
       case 0: chPitch=1500; chRoll=1500; break;
       case 1: chPitch=1000; chRoll=1000; break;      
@@ -89,15 +103,21 @@ void loop() {
       case 9: chPitch=2000; chRoll=2000; break;      
     }
 
+    //update the pwm outputs
+    pwm.updatePortMsWithOffset(0, chThr  );
+    pwm.updatePortMsWithOffset(1, chYaw  );
+    pwm.updatePortMsWithOffset(2, chPitch);
+    pwm.updatePortMsWithOffset(3, chRoll );
+
     //update OLED display
     display.clearDisplay();
     display.setCursor(0,0);
-    display.print("Left:    ");  display.println(left.getState());
+    display.print("Left:    ");  display.println(left.getState() );
     display.print("Right:   ");  display.println(right.getState());
-    display.print("chThr:   ");  display.println(chThr);
-    display.print("chYaw:   ");  display.println(chYaw);
+    display.print("chThr:   ");  display.println(chThr  );
+    display.print("chYaw:   ");  display.println(chYaw  );
     display.print("chPitch: ");  display.println(chPitch);
-    display.print("chRoll:  ");  display.println(chRoll);
+    display.print("chRoll:  ");  display.println(chRoll );
 
     //draw the PPM lines for each chanell
     display.drawLine(80,2*8+4, map(chThr,  1000,2000,85,128), 2*8+4, WHITE);
