@@ -29,13 +29,14 @@ public:
   static   void  pwmInIsr( void);
            void  initializePwmOutput(void);
            void  initializePwmInput( void);
-           void  updatePortRaw(       unsigned char portIndex, unsigned int value      );
-           void  updatePortMs(        unsigned char portIndex, unsigned int value      );
-           void  updatePortFloat(     unsigned char portIndex, float percentage        );
-           void  updatePortPercentage(unsigned char portIndex, unsigned char percentage);
-  unsigned int   getPortRaw(          unsigned char portIndex                          );
-  unsigned int   getPortMs(           unsigned char portIndex                          );
-  unsigned int   getPortMsWithOffset( unsigned char portIndex                          );
+           void  updatePortRaw(         unsigned char portIndex, unsigned int value      );
+           void  updatePortMs(          unsigned char portIndex, unsigned int value      );
+           void  updatePortMsWithOffset(unsigned char portIndex, unsigned int value      );
+           void  updatePortFloat(       unsigned char portIndex, float percentage        );
+           void  updatePortPercentage(  unsigned char portIndex, unsigned char percentage);
+  unsigned int   getPortRaw(            unsigned char portIndex                          );
+  unsigned int   getPortMs(             unsigned char portIndex                          );
+  unsigned int   getPortMsWithOffset(   unsigned char portIndex                          );
 
 
 private:

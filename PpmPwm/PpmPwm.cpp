@@ -167,27 +167,35 @@ void PpmPwm::pwmInIsr(void) {
 }
 
 
+//raw exactly in timer ticks the internal counter works 2000-4000
 void PpmPwm::updatePortRaw(unsigned char portIndex, unsigned int value) {
   if (value >= 2000 && value <= 4000 && portIndex<this->ports) {
     this->portPwm[portIndex] = value;
   }
 }
 
-
+//how long desired payload should last (final pulse will be 1000ms longer) 0-1000
 void PpmPwm::updatePortMs(unsigned char portIndex, unsigned int value) {
-  if (value > 0 && value <= 1000 && portIndex<this->ports) {
+  if (value >= 0 && value <= 1000 && portIndex<this->ports) {
     this->portPwm[portIndex] = (1000 + value) * 2;
   }
 }
 
+//exactly how ms should the output pulse last in ms 1000-2000
+void PpmPwm::updatePortMsWithOffset(unsigned char portIndex, unsigned int value) {
+  if (value >= 1000 && value <= 2000 && portIndex<this->ports) {
+    this->portPwm[portIndex] = value * 2;
+  }
+}
 
+//0.0 is min 1.0 is max
 void PpmPwm::updatePortFloat(unsigned char portIndex, float percentage) {
   if (percentage >= 0 && percentage <= 1.0 && portIndex<this->ports) {
     this->portPwm[portIndex] = (percentage*2000)+2000;
   }
 }
 
-
+//0-100 percentage representation
 void PpmPwm::updatePortPercentage(unsigned char portIndex, unsigned char percentage) {
   if (percentage >= 0 && percentage <= 100 && portIndex<this->ports) {
     this->portPwm[portIndex] = map(percentage, 0, 100, 2000, 4000);
