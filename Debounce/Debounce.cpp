@@ -1,5 +1,5 @@
 
-#include "WProgram.h"
+#include "Arduino.h"
 #include "Debounce.h"
 
 
