@@ -105,9 +105,9 @@ void loop() {
 
     //update the pwm outputs
     pwm.updatePortMsWithOffset(0, chThr  );
-    pwm.updatePortMsWithOffset(1, chYaw  );
+    pwm.updatePortMsWithOffset(1, chRoll );
     pwm.updatePortMsWithOffset(2, chPitch);
-    pwm.updatePortMsWithOffset(3, chRoll );
+    pwm.updatePortMsWithOffset(3, chYaw  );
 
     //update OLED display
     display.clearDisplay();
