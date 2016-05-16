@@ -230,3 +230,13 @@ unsigned int PpmPwm::getPortMsWithOffset(unsigned char portIndex) {
     return -1;
   }
 }
+
+
+unsigned char PpmPwm::getPortPercentage(unsigned char portIndex) {
+  if (portIndex<this->ports) {
+    return (this->portPwm[portIndex]-2000) / 20;   //will return results between 0-100
+  }
+  else {
+    return -1;
+  }
+}

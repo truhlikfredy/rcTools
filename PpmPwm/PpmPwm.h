@@ -37,6 +37,8 @@ public:
   unsigned int   getPortRaw(            unsigned char portIndex                          );
   unsigned int   getPortMs(             unsigned char portIndex                          );
   unsigned int   getPortMsWithOffset(   unsigned char portIndex                          );
+  unsigned char  getPortPercentage(     unsigned char portIndex                          );
+
 
 
 private:
