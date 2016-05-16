@@ -1,24 +1,24 @@
 //comment out to disable serial output
 //#define serialSpeed  9600
 
-#define SWITCH_A     9         //mode A button
-#define SWITCH_B     8         //programer switch button
-#define OUTPUT_FC    7         //OSD will communicate with FC
-#define OUTPUT_FTDI  6         //OSD will communicate with FTDI usb converter
-#define sensorPinA   A0        //dpad Left
-#define sensorPinB   A1        //dpad Right
+#define SWITCH_A     9            //mode A button
+#define SWITCH_B     8            //programer switch button
+#define OUTPUT_FC    7            //OSD will communicate with FC
+#define OUTPUT_FTDI  6            //OSD will communicate with FTDI usb converter
+#define sensorPinA   A0           //dpad Left
+#define sensorPinB   A1           //dpad Right
 
-#include <PpmPwm.h>            //https://github.com/truhlikfredy/rcTools/tree/master/PpmPwm
-#include <DPad1.h>             //https://github.com/truhlikfredy/rcTools/tree/master/1pinDpad/DPad1
+#include <PpmPwm.h>               //https://github.com/truhlikfredy/rcTools/tree/master/PpmPwm
+#include <DPad1.h>                //https://github.com/truhlikfredy/rcTools/tree/master/1pinDpad/DPad1
 #include <SPI.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>      //https://github.com/adafruit/Adafruit-GFX-Library
-#include <Adafruit_SSD1306.h>  //https://github.com/adafruit/Adafruit_SSD1306
-#include <Debounce.h>          //https://github.com/truhlikfredy/rcTools/tree/master/Debounce a modified http://playground.arduino.cc/Code/Debounce
+#include <Adafruit_GFX.h>         //https://github.com/adafruit/Adafruit-GFX-Library
+#include <Adafruit_SSD1306_64.h>  //https://github.com/truhlikfredy/rcTools/tree/master/Adafruit_SSD1306_64 a modified https://github.com/adafruit/Adafruit_SSD1306
+#include <Debounce.h>             //https://github.com/truhlikfredy/rcTools/tree/master/Debounce a modified http://playground.arduino.cc/Code/Debounce
 
 
 #define OLED_RESET 4
-Adafruit_SSD1306 display(OLED_RESET);
+Adafruit_SSD1306_64 display(OLED_RESET);
 
 
 // Because I messed up and I run out of 10k resitors I used two 22k in paraler and then
