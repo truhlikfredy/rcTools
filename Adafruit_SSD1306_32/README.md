@@ -1,4 +1,8 @@
-# Adafruit_SSD1306
+# Adafruit_SSD1306_32
+
+## Dedicated
+This branch of the library is dedicated to 128x32 pixel screens
+
 <!-- START COMPATIBILITY TABLE -->
 
 ## Compatibility

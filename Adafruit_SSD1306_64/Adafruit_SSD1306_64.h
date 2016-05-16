@@ -15,8 +15,8 @@ Written by Limor Fried/Ladyada  for Adafruit Industries.
 BSD license, check license.txt for more information
 All text above, and the splash screen must be included in any redistribution
 *********************************************************************/
-#ifndef _Adafruit_SSD1306_H_
-#define _Adafruit_SSD1306_H_
+#ifndef _Adafruit_SSD1306_64_H_
+#define _Adafruit_SSD1306_64_H_
 
 #if ARDUINO >= 100
  #include "Arduino.h"
@@ -137,11 +137,11 @@ All text above, and the splash screen must be included in any redistribution
 #define SSD1306_VERTICAL_AND_RIGHT_HORIZONTAL_SCROLL 0x29
 #define SSD1306_VERTICAL_AND_LEFT_HORIZONTAL_SCROLL 0x2A
 
-class Adafruit_SSD1306 : public Adafruit_GFX {
+class Adafruit_SSD1306_64 : public Adafruit_GFX {
  public:
-  Adafruit_SSD1306(int8_t SID, int8_t SCLK, int8_t DC, int8_t RST, int8_t CS);
-  Adafruit_SSD1306(int8_t DC, int8_t RST, int8_t CS);
-  Adafruit_SSD1306(int8_t RST = -1);
+  Adafruit_SSD1306_64(int8_t SID, int8_t SCLK, int8_t DC, int8_t RST, int8_t CS);
+  Adafruit_SSD1306_64(int8_t DC, int8_t RST, int8_t CS);
+  Adafruit_SSD1306_64(int8_t RST = -1);
 
   void begin(uint8_t switchvcc = SSD1306_SWITCHCAPVCC, uint8_t i2caddr = SSD1306_I2C_ADDRESS, bool reset=true);
   void ssd1306_command(uint8_t c);
@@ -179,4 +179,4 @@ class Adafruit_SSD1306 : public Adafruit_GFX {
 
 };
 
-#endif /* _Adafruit_SSD1306_H_ */
+#endif /* _Adafruit_SSD1306_64_H_ */
