@@ -1,14 +1,11 @@
 #include <SPI.h>
 #include <Wire.h>
-#include <PpmPwm.h>             //https://github.com/truhlikfredy/rcTools/tree/master/PpmPwm
-#include <Adafruit_GFX.h>       //https://github.com/adafruit/Adafruit-GFX-Library
-#include <Adafruit_SSD1306.h>   //https://github.com/adafruit/Adafruit_SSD1306
-#include <Adafruit_Sensor.h>    //https://github.com/adafruit/Adafruit_Sensor
-#include <Adafruit_ADXL345_U.h> //https://github.com/adafruit/Adafruit_ADXL345
-
-#if (SSD1306_LCDHEIGHT != 32)
-#error("Height incorrect, please fix Adafruit_SSD1306.h!");
-#endif
+#include <PpmPwm.h>                //https://github.com/truhlikfredy/rcTools/tree/master/PpmPwm
+#include <Adafruit_GFX.h>          //https://github.com/adafruit/Adafruit-GFX-Library
+#include <Adafruit_SSD1306_32.h>   //https://github.com/truhlikfredy/rcTools/tree/master/Adafruit_SSD1306_32 a modified https://github.com/adafruit/Adafruit_SSD1306 
+#include <Adafruit_Sensor.h>       //https://github.com/adafruit/Adafruit_Sensor
+#include <Adafruit_ADXL345_U.h>    //https://github.com/adafruit/Adafruit_ADXL345
+#include <Debounce.h>              //https://github.com/truhlikfredy/rcTools/tree/master/Debounce a modified http://playground.arduino.cc/Code/Debounce
 
 
 //OLED
@@ -18,7 +15,7 @@
 #define GRAPH_ENTRIES  32
 #define SPLASH_DELAY   2000
 
-Adafruit_SSD1306 display(OLED_RESET);
+Adafruit_SSD1306_32 display(OLED_RESET);
 
 struct History {
   unsigned int  graph[GRAPH_ENTRIES];
@@ -28,21 +25,20 @@ struct History {
 
 //ACCEL
 #define ACL_LOOP       250
-boolean                  aclEnabled   = true;
 Adafruit_ADXL345_Unified accel        = Adafruit_ADXL345_Unified(12345);
-sensors_event_t          event; 
-
 
 struct Acel {
-  unsigned int  x = 0;
-  unsigned int  y = 0;
-  unsigned int  z = 0;
-  unsigned int avg = 0;
-  unsigned int maxAvg =0;
-  unsigned long peak;
-  unsigned long sum=0;
-  unsigned char loop =1;
+  boolean          aclEnabled = true;
+  unsigned int     x          = 0;
+  unsigned int     y          = 0;
+  unsigned int     z          = 0;
+  unsigned int     avg        = 0;
+  unsigned int     maxAvg     = 0;
+  unsigned long    peak       = 0;
+  unsigned long    sum        = 0;
+  unsigned char    loop       = 1;
   sensors_event_t  event_old; 
+  sensors_event_t  event; 
 } acel;
 
 
@@ -55,6 +51,10 @@ PpmPwm pwm(4,9,10,11,12);  //4 ports D9, D10, D11, D12
 #define ENCODER_CLK    2      // Used for generating interrupts using CLK signal, it needs to stay 2 because isr0 is binded
 #define ENCODER_DT     3      // Used for reading DT signal
 #define ENCODER_BTN    6      // Used for reading the push button
+
+Debounce encoderBtn      = Debounce(20, ENCODER_BTN); 
+boolean  encoderBtnEvent = false;
+
 struct Encoder {
   volatile boolean      updated;
   volatile unsigned int pos_min;
@@ -76,8 +76,8 @@ typedef enum {ROOT,
               INVALID
               } menuModeType;
               
-//menuModeType menuMode    = ROOT;
-menuModeType menuMode    = MANUAL;
+menuModeType menuMode    = ROOT;
+//menuModeType menuMode    = MANUAL;
 menuModeType menuModeOld = INVALID;
 
 
@@ -148,9 +148,9 @@ void setupAccel() {
     display.println("Press button to");
     display.println("continue without it.");
     display.display();
-    while(aclEnabled) {
+    while(acel.aclEnabled) {
       if ( digitalRead(ENCODER_BTN) == 0 )  {
-        aclEnabled = false;
+        acel.aclEnabled = false;
       }
     }
   }
@@ -168,15 +168,32 @@ void setup()   {
 }
 
 
+void measure_init() {
+  //clear values
+  acel.avg     = 0;
+  acel.sum     = 0;
+  acel.peak    = 0;
+  acel.maxAvg  = 0;
+  acel.loop    = 1;
+
+  //clear graph data
+  history.index = 0;
+  for (unsigned char i=0;i<GRAPH_ENTRIES;i++) {
+    history.graph[i]=0;
+  }  
+
+  accel.getEvent(&acel.event_old);  
+}
+
 void measure() {  
-  if (aclEnabled) {
+  if (acel.aclEnabled) {
     
     // Get sensor data
-    accel.getEvent(&event);
+    accel.getEvent(&acel.event);
 
-    unsigned int diffX = round(abs(event.acceleration.x - acel.event_old.acceleration.x)*100);
-    unsigned int diffY = round(abs(event.acceleration.y - acel.event_old.acceleration.y)*100);
-    unsigned int diffZ = round(abs(event.acceleration.z - acel.event_old.acceleration.z)*100);
+    unsigned int diffX = round(abs(acel.event.acceleration.x - acel.event_old.acceleration.x)*100);
+    unsigned int diffY = round(abs(acel.event.acceleration.y - acel.event_old.acceleration.y)*100);
+    unsigned int diffZ = round(abs(acel.event.acceleration.z - acel.event_old.acceleration.z)*100);
 
     acel.x=max(acel.x, diffX);
     acel.y=max(acel.y, diffY);
@@ -202,7 +219,7 @@ void measurePost() {
     acel.z          = 0;
     acel.sum        = 0;
     acel.loop       = 0;
-    acel.event_old  = event;  
+    acel.event_old  = acel.event;  
   }
   
   if ( digitalRead(ENCODER_BTN) == 0 ) {
@@ -258,6 +275,12 @@ void menuChangeEncoderSettings() {
         encoder.pos_min = 0;
         encoder.pos_max = 2;
         break;
+
+      case MANUAL:
+        encoder.pos     = 0;
+        encoder.pos_min = 0;
+        encoder.pos_max = 100;
+        break;
        
     }    
   }
@@ -272,14 +295,17 @@ void menuRoot() {
     
     case 0:
       display.println("Manual run");
+      if (encoderBtnEvent && !encoderBtn.read()) menuMode = MANUAL;
       break;
       
     case 1:
       display.println("Automated run");
+      if (encoderBtnEvent && !encoderBtn.read()) menuMode = AUTO_RUN;
       break;
 
     case 2:
       display.println("Calibrate ESC");
+      if (encoderBtnEvent && !encoderBtn.read()) menuMode = ESC_CALIBRATE;
       break;
       
       
@@ -299,6 +325,45 @@ void menuManual() {
 }
 
 
+void menuAutomaticRun() {
+  static unsigned int  engineSpeed = 1000;
+  static boolean       measureMode = false;
+
+  //in non measurement mode wait for button press
+  if (!measureMode) {
+    if ( encoderBtnEvent && !encoderBtn.read() ) {
+      measureMode = true;
+      measure_init();
+    }
+  }
+
+  //if we are in measure mode then take measurements
+  if (measureMode) {
+    measure();
+  }
+
+  //after each 1/20s of second increment the engineSpeed
+  if (acel.loop%(ACL_LOOP/20)==0 && measureMode)  { 
+    engineSpeed++;
+
+    //engineSpeed if maximum is reached stop engine and the measurements
+    if (engineSpeed > 2000) {
+      engineSpeed = 1000;
+      measureMode = false;
+      pwm.updatePortMsWithOffset(0, engineSpeed);
+    }
+  }
+
+  //after about 1s passed
+  if (acel.loop%ACL_LOOP==0)  { 
+    pwm.updatePortMsWithOffset(0, engineSpeed);
+    displayGraph(pwm.getPortPercentage(0), true);
+  }  
+  //do some housekeeping tasks after each iteration
+  measurePost();  
+}
+
+
 void menuDisplay() {
     switch (menuMode) {
       
@@ -309,13 +374,20 @@ void menuDisplay() {
       case MANUAL:
         menuManual();
         break;
+
+      case AUTO_RUN:
+        menuAutomaticRun();
+        break;
+        
     }    
 }
 
+
 void loop() {
+  encoderBtnEvent = encoderBtn.update();
+
   menuChangeEncoderSettings();
   menuDisplay();
-  
 }
 
 
