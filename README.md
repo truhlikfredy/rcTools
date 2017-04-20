@@ -7,7 +7,7 @@ Arduino library which allows 4 way dpad to be attached to 1 single pin (supports
 ![4 way Dpad](/screenShots/dpad.jpg)
 
 
-![schematic](r/1pinDpad/schematic1.png)
+![schematic](/1pinDpad/schematic1.png)
 
 ![diagram](/1pinDpad/dpad1.png)
 
